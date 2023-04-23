@@ -77,6 +77,7 @@ class CVRP_ACO:
         return my_trucks
 
     #updates pheromone matrix to include evaporation and deposit
+    #returns updated pheromone trails
     def update_pheromones(self, pheromone_trails, my_trucks):
         pheromone_trails = [[pheromone * CVRP_ACO.evaporation_rate for pheromone in pheromone_trail] for pheromone_trail in pheromone_trails]
 
@@ -86,6 +87,8 @@ class CVRP_ACO:
                 depot_one = truck.route[i]
                 depot_two = truck.route[i + 1]
                 pheromone_trails[depot_one][depot_two] += deposit_value
+
+        return pheromone_trails
 
     #tries to move each truck to a new depot
     def move_trucks(self, pheromone_trails, my_trucks):
@@ -123,7 +126,7 @@ class CVRP_ACO:
             truck_colony = CVRP_ACO.setup_trucks(self)
             while not CVRP_ACO.done_routes(self, truck_colony):
                 CVRP_ACO.move_trucks(self, pheromone_trails, truck_colony)
-            CVRP_ACO.update_pheromones(self, pheromone_trails, truck_colony)
+            pheromone_trails = CVRP_ACO.update_pheromones(self, pheromone_trails, truck_colony)
             best_truck = CVRP_ACO.get_best(self, truck_colony)
 
         best_route = best_truck.route
