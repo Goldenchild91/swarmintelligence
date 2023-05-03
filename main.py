@@ -126,18 +126,13 @@ class CVRP_ACO:
             truck_colony = CVRP_ACO.setup_trucks(self)
             while not CVRP_ACO.done_routes(self, truck_colony):
                 CVRP_ACO.move_trucks(self, pheromone_trails, truck_colony)
+            for truck in truck_colony:
+                if truck.route[-1] != 0:
+                   truck.route.append(0)
             pheromone_trails = CVRP_ACO.update_pheromones(self, pheromone_trails, truck_colony)
             best_truck = CVRP_ACO.get_best(self, truck_colony)
 
-        best_route = best_truck.route
-        best_distance = best_truck.get_distance_traveled()
-
-        if best_route[-1] != 0:
-            best_route.append(0)
-            best_distance += CVRP_ACO.distance_matrix[best_route[-1]][0]
-
-        print("Best Route: " + str(best_route))
-        print("Best Distance: " + str(best_distance))
+        print("Truck (load = " + str(best_truck.load) + ", distance = " + str(best_truck.get_distance_traveled()) + "): " + str(best_truck.route))
         print("Pheromone Trails: " + str(pheromone_trails))
 
 
@@ -224,9 +219,6 @@ class Truck(CVRP_ACO):
     def roulette_wheel_selection(self, pheromone_trails):
         depot_probs = self.get_depot_probs(pheromone_trails)
 
-        if len(depot_probs) == 0:
-            return 0
-
         random_probability = random.random()
         i = 0
         while random_probability > list(depot_probs.values())[i]:
@@ -238,7 +230,7 @@ class Truck(CVRP_ACO):
     # generates list of probabilities for roulette wheel
     # returns: list of pairs (scaled to 1.0)
     def get_depot_probs(self, pheromone_trails):
-        current_attraction = self.visited_depots[-1]
+        current_attraction = self.route[-1]
         all_attractions = range(0, len(CVRP_ACO.loads))
         possible_attractions = []
 
@@ -247,17 +239,18 @@ class Truck(CVRP_ACO):
                 possible_attractions.append(all_attraction)
         if len(possible_attractions) == 0:
             return {0:1}
+        if (current_attraction == 0) and (0 in possible_attractions):
+            possible_attractions.remove(0)
 
         depot_probs = {}
         total_probabilities = 0
 
         for attraction in possible_attractions:
-            if current_attraction != attraction:
-                pheromones_on_path = (pheromone_trails[current_attraction][attraction]) ** CVRP_ACO.alpha
-                heuristic_for_path = (1/ (CVRP_ACO.distance_matrix[current_attraction][attraction])) ** CVRP_ACO.beta
-                probability = pheromones_on_path * heuristic_for_path
-                total_probabilities += probability
-                depot_probs[attraction] = probability
+            pheromones_on_path = (pheromone_trails[current_attraction][attraction]) ** CVRP_ACO.alpha
+            heuristic_for_path = (1/ (CVRP_ACO.distance_matrix[current_attraction][attraction])) ** CVRP_ACO.beta
+            probability = pheromones_on_path * heuristic_for_path
+            total_probabilities += probability
+            depot_probs[attraction] = probability
 
         for key, value in depot_probs.items():
             value /= total_probabilities
